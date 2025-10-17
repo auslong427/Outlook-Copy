@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Outlook Copy Sender",
+  "version": "1.7.0",
+  "description": "Adds a Copy sender button to Outlook on the web message headers. Persona hover fallback. No tracking.",
+  "action": {
+    "default_title": "Outlook Copy Sender"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://outlook.office.com/*",
+        "https://outlook.live.com/*",
+        "https://outlook.office365.com/*"
+      ],
+      "run_at": "document_end",
+      "js": ["copy-sender.js"],
+      "css": ["copy-sender.css"]
+    }
+  ]
+}

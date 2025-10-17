@@ -1,0 +1,29 @@
+/* Outlook Copy Sender — v1.7.0 */
+/* Fixed-position (within header) utility bar to avoid altering ARIA chips */
+.ocb-bar{ position:absolute; top:6px; right:8px; display:flex; gap:6px; z-index:3 }
+.ocb-host{ position:relative !important } /* ensure header is positioning context */
+.ocb-btn{
+  padding:2px 8px; font-size:12px; line-height:18px; height:22px;
+  border:1px solid rgba(0,0,0,.2); border-radius:10px; background:rgba(0,0,0,.04);
+  cursor:pointer; user-select:none; font-family:inherit; color:inherit; transition:background-color .15s ease, border-color .15s ease;
+}
+.ocb-btn:hover{ background:rgba(0,0,0,.08); border-color:rgba(0,0,0,.25) }
+.ocb-btn:active{ background:rgba(0,0,0,.12); border-color:rgba(0,0,0,.30) }
+.ocb-btn:focus-visible{ outline:2px solid #0078d4; outline-offset:2px }
+
+.ocb-toast{
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(20px); opacity:0;
+  padding:8px 12px; border-radius:10px; background:rgba(32,32,32,.9); color:#fff; font-size:12px; line-height:18px; text-align:center;
+  z-index:2147483647; transition:all .25s ease; pointer-events:none; max-width:90vw; word-break:break-word;
+}
+.ocb-toast.show{ transform:translateX(-50%) translateY(0); opacity:1 }
+
+@media (prefers-color-scheme: dark){
+  .ocb-btn{ background:rgba(255,255,255,.08); color:rgb(220,220,220); border-color:rgba(255,255,255,.2) }
+  .ocb-btn:hover{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.30) }
+  .ocb-btn:active{ background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.40) }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ocb-btn, .ocb-toast{ transition:none }
+}
