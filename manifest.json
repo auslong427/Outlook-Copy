@@ -3,9 +3,19 @@
   "name": "Outlook Copy Sender",
   "version": "1.7.0",
   "description": "Adds a Copy sender button to Outlook on the web message headers. Persona hover fallback. No tracking.",
+  "author": "Outlook Copy Sender Extension",
+  "homepage_url": "https://github.com/auslong427/Outlook-Copy",
   "action": {
     "default_title": "Outlook Copy Sender"
   },
+  "permissions": [
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://outlook.office.com/*",
+    "https://outlook.live.com/*",
+    "https://outlook.office365.com/*"
+  ],
   "content_scripts": [
     {
       "matches": [

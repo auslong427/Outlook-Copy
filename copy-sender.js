@@ -81,11 +81,21 @@
     $('[aria-label="From"]', s) ||
     $('span[aria-label^="From" i]', s);
 
+  function sanitizeEmail(email){
+    if (!email || typeof email !== 'string') return null;
+    const trimmed = email.trim().toLowerCase();
+    const match = trimmed.match(EMAIL_RE);
+    return match ? match[0] : null;
+  }
+
   function findEmailInHeader(scope){
     // 1) mailto
     const a = $('a[href^="mailto:"]', scope);
     if (a && visible(a)) {
-      try { return a.href.slice(7).split('?')[0]; } catch {}
+      try {
+        const email = a.href.slice(7).split('?')[0];
+        return sanitizeEmail(email);
+      } catch {}
     }
 
     // 2) attributes with an email
@@ -93,14 +103,15 @@
     if (node){
       try {
         const v = node.getAttribute('data-email') || node.getAttribute('title') || node.getAttribute('aria-label') || '';
-        const m = v.match(EMAIL_RE); if (m) return m[0];
+        const m = v.match(EMAIL_RE);
+        if (m) return sanitizeEmail(m[0]);
       } catch {}
     }
 
     // 3) regex in header text
     try {
       const m = text(scope).match(EMAIL_RE);
-      return m ? m[0] : null;
+      return m ? sanitizeEmail(m[0]) : null;
     } catch {
       return null;
     }
@@ -114,7 +125,9 @@
     try{
       chip.dispatchEvent(new MouseEvent('mouseenter', {bubbles:true, cancelable:true, view:window}));
       chip.dispatchEvent(new MouseEvent('mouseover',  {bubbles:true, cancelable:true, view:window}));
-      chip.focus && chip.focus();
+      if (typeof chip.focus === 'function') {
+        chip.focus();
+      }
     }catch{}
 
     const deadline = Date.now() + 2000;
@@ -127,7 +140,11 @@
         // mailto inside card
         const a = pop.querySelector('a[href^="mailto:"]');
         if (a){
-          try { return a.href.slice(7).split('?')[0]; } catch {}
+          try {
+            const email = a.href.slice(7).split('?')[0];
+            const sanitized = sanitizeEmail(email);
+            if (sanitized) return sanitized;
+          } catch {}
         }
 
         // attribute hints
@@ -135,13 +152,21 @@
         if (node){
           try {
             const v = node.getAttribute('data-email') || node.getAttribute('title') || node.getAttribute('aria-label') || '';
-            const m = v.match(EMAIL_RE); if (m) return m[0];
+            const m = v.match(EMAIL_RE);
+            if (m) {
+              const sanitized = sanitizeEmail(m[0]);
+              if (sanitized) return sanitized;
+            }
           } catch {}
         }
 
         // plain text in card
         try {
-          const m = (pop.textContent||'').match(EMAIL_RE); if (m) return m[0];
+          const m = (pop.textContent||'').match(EMAIL_RE);
+          if (m) {
+            const sanitized = sanitizeEmail(m[0]);
+            if (sanitized) return sanitized;
+          }
         } catch {}
       }
       await new Promise(r=>setTimeout(r,140));
@@ -155,6 +180,8 @@
   }
 
   function showToast(msg){
+    if (!msg || typeof msg !== 'string') return;
+    
     let t = document.querySelector('.ocb-toast');
     if (!t){
       t = document.createElement('div');
@@ -162,7 +189,12 @@
       t.setAttribute('role', 'status');
       t.setAttribute('aria-live', 'polite');
       t.setAttribute('aria-atomic', 'true');
-      document.body.appendChild(t);
+      try {
+        document.body.appendChild(t);
+      } catch(e) {
+        log('Failed to append toast:', e);
+        return;
+      }
     }
     t.textContent = msg;
     t.classList.add('show');
@@ -192,6 +224,11 @@
       btn.addEventListener('click', async (e)=>{
         try{
           e.stopPropagation();
+          e.preventDefault();
+          
+          // Disable button during operation to prevent double-clicks
+          btn.disabled = true;
+          
           // cache first
           let email = cachedEmails.get(header) || findEmailInHeader(header);
 
@@ -200,8 +237,9 @@
             email = await personaHoverExtract(header);
           }
 
-          if (!email){
+          if (!email || !EMAIL_RE.test(email)){
             showToast('Could not find sender email');
+            btn.disabled = false;
             return;
           }
 
@@ -210,22 +248,30 @@
           // Copy modern API
           try{
             await navigator.clipboard.writeText(email);
-            showToast('Sender email copied');
-          }catch{
+            showToast('✓ Sender email copied');
+            log('Copied email:', email);
+          }catch(clipErr){
+            log('Clipboard API failed, using fallback:', clipErr);
             // Fallback execCommand
             const ta = document.createElement('textarea');
             ta.value = email;
             ta.style.position='fixed';
             ta.style.left='-9999px';
+            ta.style.top='-9999px';
+            ta.setAttribute('readonly', '');
+            ta.setAttribute('aria-hidden', 'true');
             document.body.appendChild(ta);
             ta.select();
             let ok=false;
-            try{ ok=document.execCommand('copy'); } finally { ta.remove(); }
-            showToast(ok ? 'Sender email copied' : 'Copy failed');
+            try{ ok=document.execCommand('copy'); } catch(execErr) { log('execCommand failed:', execErr); } finally { ta.remove(); }
+            showToast(ok ? '✓ Sender email copied' : '✗ Copy failed');
           }
+          
+          btn.disabled = false;
         }catch(err){
           log('click handler error:', err);
-          showToast('Error copying email');
+          showToast('✗ Error copying email');
+          btn.disabled = false;
         }
       }, {capture:true});
 
@@ -281,7 +327,11 @@
         attributeFilter:['title','aria-label','href','class','style','data-automationid']
       });
       const id = setInterval(pruneAndInject, 1800);
-      addEventListener('pagehide', ()=> clearInterval(id));
+      addEventListener('pagehide', ()=> {
+        clearInterval(id);
+        clearTimeout(toastTimer);
+        clearTimeout(sweepTimer);
+      });
     }catch(e){ log('observe error', e); }
     hookSpa();
   }
