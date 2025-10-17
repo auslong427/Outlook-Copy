@@ -219,6 +219,7 @@
       btn.className = 'ocb-btn';
       btn.setAttribute('aria-label', 'Copy sender email');
       btn.setAttribute('title', 'Copy sender email');
+      btn.setAttribute('tabindex', '0');
       btn.textContent = 'Copy sender';
 
       btn.addEventListener('click', async (e)=>{
